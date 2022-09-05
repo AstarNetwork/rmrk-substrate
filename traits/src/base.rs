@@ -23,12 +23,10 @@ use serde::Serialize;
 #[derive(Encode, Decode, Debug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(
 	feature = "std",
-	serde(
-		bound = r#"
+	serde(bound = r#"
 			AccountId: Serialize,
 			BoundedString: AsRef<[u8]>
-		"#
-	)
+		"#)
 )]
 pub struct BaseInfo<AccountId, BoundedString> {
 	/// Original creator of the Base
