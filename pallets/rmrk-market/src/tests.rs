@@ -5,7 +5,7 @@
 use super::*;
 use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::Event as MockEvent;
+use mock::RuntimeEvent as MockEvent;
 
 use sp_runtime::Permill;
 use sp_std::convert::TryInto;
@@ -19,7 +19,7 @@ macro_rules! bvec {
 /// Shortcut for a test collection creation (Alice is issue, max NFTs is 5)
 fn basic_collection() -> DispatchResult {
 	RmrkCore::create_collection(
-		Origin::signed(ALICE),
+		RuntimeOrigin::signed(ALICE),
 		COLLECTION_ID_0,
 		bvec![0u8; 20],
 		Some(5),
@@ -30,7 +30,7 @@ fn basic_collection() -> DispatchResult {
 /// Shortcut for a basic mint (Alice owner, Collection ID 0, Royalty 1.525)
 fn basic_mint(id: u32) -> DispatchResult {
 	RmrkCore::mint_nft(
-		Origin::signed(ALICE),
+		RuntimeOrigin::signed(ALICE),
 		Some(ALICE),
 		id,
 		COLLECTION_ID_0,
@@ -57,13 +57,13 @@ fn list_works() {
 		assert_eq!(RmrkCore::collections(COLLECTION_ID_0).unwrap().nfts_count, 2);
 		// BOB shouldn't be able to list ALICE's NFT
 		assert_noop!(
-			RmrkMarket::list(Origin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, 10u128, None,),
+			RmrkMarket::list(RuntimeOrigin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, 10u128, None,),
 			Error::<Test>::NoPermission
 		);
 		// ALICE cannot list a non-existing NFT
 		assert_noop!(
 			RmrkMarket::list(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NOT_EXISTING_NFT_ID,
 				10u128,
@@ -73,7 +73,7 @@ fn list_works() {
 		);
 		// ALICE sends NFT [0,1] to NFT [0,0]
 		assert_ok!(RmrkCore::send(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_0,
 			NFT_ID_1,
 			AccountIdOrCollectionNftTuple::CollectionAndNftTuple(COLLECTION_ID_0, NFT_ID_0),
@@ -91,12 +91,12 @@ fn list_works() {
 		}));
 		// ALICE cannot list NFT [0,1] bc it is owned by NFT[0,0]
 		assert_noop!(
-			RmrkMarket::list(Origin::signed(ALICE), COLLECTION_ID_0, NFT_ID_1, 10u128, None,),
+			RmrkMarket::list(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, NFT_ID_1, 10u128, None,),
 			Error::<Test>::CannotListNftOwnedByNft
 		);
 		// ALICE lists the NFT successfully
 		assert_ok!(RmrkMarket::list(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			10u128,
@@ -119,7 +119,7 @@ fn list_non_transferable_fail() {
 		assert_ok!(basic_collection());
 		// Mint non-transferable NFT
 		assert_ok!(RmrkCore::mint_nft(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			Some(ALICE),
 			NFT_ID_0,
 			COLLECTION_ID_0,
@@ -130,7 +130,7 @@ fn list_non_transferable_fail() {
 			None,
 		));
 		assert_noop!(
-			RmrkMarket::list(Origin::signed(ALICE), COLLECTION_ID_0, 0, 10u128, None,),
+			RmrkMarket::list(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, 0, 10u128, None,),
 			pallet_rmrk_core::Error::<Test>::NonTransferable
 		);
 	});
@@ -143,7 +143,7 @@ fn list_frozen_fail() {
 		assert_ok!(basic_collection());
 		// Mint non-transferable NFT
 		assert_ok!(RmrkCore::mint_nft(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			Some(ALICE),
 			NFT_ID_0,
 			COLLECTION_ID_0,
@@ -155,12 +155,12 @@ fn list_frozen_fail() {
 		));
 		// freeze NFT
 		assert_ok!(pallet_uniques::Pallet::<Test>::freeze(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_0,
 			NFT_ID_0
 		));
 		assert_noop!(
-			RmrkMarket::list(Origin::signed(ALICE), COLLECTION_ID_0, 0, 10u128, None,),
+			RmrkMarket::list(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, 0, 10u128, None,),
 			pallet_uniques::Error::<Test>::Frozen
 		);
 	});
@@ -179,7 +179,7 @@ fn buy_works() {
 		assert_eq!(RmrkCore::collections(COLLECTION_ID_0).unwrap().nfts_count, 1);
 		// ALICE lists the NFT successfully
 		assert_ok!(RmrkMarket::list(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			10u128,
@@ -194,16 +194,16 @@ fn buy_works() {
 		}));
 		// Ensure that ALICE cannot buy the listed NFT
 		assert_noop!(
-			RmrkMarket::buy(Origin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, Some(10u128),),
+			RmrkMarket::buy(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, Some(10u128),),
 			Error::<Test>::CannotBuyOwnToken
 		);
 		// Ensure that ALICE cannot buy the listed NFT
 		assert_noop!(
-			RmrkMarket::buy(Origin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, Some(9u128),),
+			RmrkMarket::buy(RuntimeOrigin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, Some(9u128),),
 			Error::<Test>::PriceDiffersFromExpected
 		);
 		// BOB buys the NFT and the NFT is transferred from ALICE to BOB
-		assert_ok!(RmrkMarket::buy(Origin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, Some(10u128),));
+		assert_ok!(RmrkMarket::buy(RuntimeOrigin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, Some(10u128),));
 		// Bought NFT should trigger TokenSold event
 		System::assert_last_event(MockEvent::RmrkMarket(crate::Event::TokenSold {
 			owner: ALICE,
@@ -230,7 +230,7 @@ fn buy_wont_work_after_list_expires() {
 		assert_eq!(RmrkCore::collections(COLLECTION_ID_0).unwrap().nfts_count, 1);
 		// ALICE lists the NFT successfully
 		assert_ok!(RmrkMarket::list(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			10u128,
@@ -247,7 +247,7 @@ fn buy_wont_work_after_list_expires() {
 		System::set_block_number(2);
 		// Ensure that BOB cannot buy the listed NFT as the listing expired
 		assert_noop!(
-			RmrkMarket::buy(Origin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, None,),
+			RmrkMarket::buy(RuntimeOrigin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, None,),
 			Error::<Test>::ListingHasExpired
 		);
 	});
@@ -266,7 +266,7 @@ fn send_wont_work_if_sent_after_list() {
 		assert_eq!(RmrkCore::collections(COLLECTION_ID_0).unwrap().nfts_count, 1);
 		// ALICE lists the NFT successfully
 		assert_ok!(RmrkMarket::list(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			10u128,
@@ -281,13 +281,13 @@ fn send_wont_work_if_sent_after_list() {
 		}));
 		// Ensure that ALICE cannot buy the listed NFT
 		assert_noop!(
-			RmrkMarket::buy(Origin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, None,),
+			RmrkMarket::buy(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, None,),
 			Error::<Test>::CannotBuyOwnToken
 		);
 		// NFT Lock Tests Ensure ALICE cannot sends CHARLIE NFT [0,0] bc it is now locked
 		assert_noop!(
 			RmrkCore::send(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				AccountIdOrCollectionNftTuple::AccountId(CHARLIE),
@@ -296,7 +296,7 @@ fn send_wont_work_if_sent_after_list() {
 		);
 		// BOB buys the NFT at whatever price is in storage and the NFT is transferred from ALICE to
 		// BOB
-		assert_ok!(RmrkMarket::buy(Origin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, None,));
+		assert_ok!(RmrkMarket::buy(RuntimeOrigin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, None,));
 
 		// Bought NFT should trigger TokenSold event
 		System::assert_last_event(MockEvent::RmrkMarket(crate::Event::TokenSold {
@@ -325,7 +325,7 @@ fn send_to_nft_wont_work_after_list() {
 		assert_eq!(RmrkCore::collections(COLLECTION_ID_0).unwrap().nfts_count, 2);
 		// ALICE lists the NFT successfully
 		assert_ok!(RmrkMarket::list(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			10u128,
@@ -340,13 +340,13 @@ fn send_to_nft_wont_work_after_list() {
 		}));
 		// Ensure that ALICE cannot buy the listed NFT
 		assert_noop!(
-			RmrkMarket::buy(Origin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, Some(10u128),),
+			RmrkMarket::buy(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, Some(10u128),),
 			Error::<Test>::CannotBuyOwnToken
 		);
 		// NFT Lock Tests ALICE sends NFT [0,0] to NFT [0,1] won't work
 		assert_noop!(
 			RmrkCore::send(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				AccountIdOrCollectionNftTuple::CollectionAndNftTuple(COLLECTION_ID_0, NFT_ID_1),
@@ -364,7 +364,7 @@ fn send_to_nft_wont_work_after_list() {
 			pallet_uniques::Error::<Test>::Locked
 		);
 		// BOB buys the NFT and the NFT is transferred from ALICE to BOB
-		assert_ok!(RmrkMarket::buy(Origin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, Some(10u128),));
+		assert_ok!(RmrkMarket::buy(RuntimeOrigin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, Some(10u128),));
 		// Bought NFT should trigger TokenSold event
 		System::assert_last_event(MockEvent::RmrkMarket(crate::Event::TokenSold {
 			owner: ALICE,
@@ -377,7 +377,7 @@ fn send_to_nft_wont_work_after_list() {
 		assert_eq!(Uniques::owner(COLLECTION_ID_0, NFT_ID_0), Some(BOB));
 		// BOB can now send NFT [0,0] to NFT [0,1] since NFT is not locked
 		assert_ok!(RmrkCore::send(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			AccountIdOrCollectionNftTuple::CollectionAndNftTuple(COLLECTION_ID_0, NFT_ID_1),
@@ -410,7 +410,7 @@ fn accept_offer_wont_work_if_traded_to_nft_after_list() {
 		assert_eq!(RmrkCore::collections(COLLECTION_ID_0).unwrap().nfts_count, 2);
 		// BOB successfully places offer
 		assert_ok!(RmrkMarket::make_offer(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			MIN_OFFER_ON_NFT,
@@ -425,7 +425,7 @@ fn accept_offer_wont_work_if_traded_to_nft_after_list() {
 		}));
 		// ALICE sends NFT [0,0] to NFT [0.1]
 		assert_ok!(RmrkCore::send(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			AccountIdOrCollectionNftTuple::CollectionAndNftTuple(COLLECTION_ID_0, NFT_ID_1),
@@ -443,7 +443,7 @@ fn accept_offer_wont_work_if_traded_to_nft_after_list() {
 		}));
 		// ALICE cannot accept offer anymore
 		assert_noop!(
-			RmrkMarket::accept_offer(Origin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, BOB,),
+			RmrkMarket::accept_offer(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, BOB,),
 			Error::<Test>::NoPermission
 		);
 	});
@@ -464,13 +464,13 @@ fn unlist_works() {
 		assert_eq!(RmrkCore::collections(COLLECTION_ID_0).unwrap().nfts_count, 2);
 		// BOB shouldn't be able to list ALICE's NFT
 		assert_noop!(
-			RmrkMarket::list(Origin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, 10u128, None,),
+			RmrkMarket::list(RuntimeOrigin::signed(BOB), COLLECTION_ID_0, NFT_ID_0, 10u128, None,),
 			Error::<Test>::NoPermission
 		);
 		// ALICE cannot list a non-existing NFT
 		assert_noop!(
 			RmrkMarket::list(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NOT_EXISTING_NFT_ID,
 				10u128,
@@ -480,12 +480,12 @@ fn unlist_works() {
 		);
 		// ALICE cannot unlist a NFT if not listed
 		assert_noop!(
-			RmrkMarket::unlist(Origin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0,),
+			RmrkMarket::unlist(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0,),
 			Error::<Test>::CannotUnlistToken
 		);
 		// ALICE lists the NFT successfully
 		assert_ok!(RmrkMarket::list(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			10u128,
@@ -500,11 +500,11 @@ fn unlist_works() {
 		}));
 		// BOB cannot unlist a NFT if not owned by BOB
 		assert_noop!(
-			RmrkMarket::unlist(Origin::signed(BOB), COLLECTION_ID_0, NFT_ID_0,),
+			RmrkMarket::unlist(RuntimeOrigin::signed(BOB), COLLECTION_ID_0, NFT_ID_0,),
 			Error::<Test>::NoPermission
 		);
 		// ALICE unlists the NFT successfully
-		assert_ok!(RmrkMarket::unlist(Origin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0,));
+		assert_ok!(RmrkMarket::unlist(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0,));
 		// Unisted NFT should trigger TokenUnlisted event
 		System::assert_last_event(MockEvent::RmrkMarket(crate::Event::TokenUnlisted {
 			owner: ALICE,
@@ -524,7 +524,7 @@ fn offer_works() {
 		// ALICE cannot offer on a non-existing NFT
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT,
@@ -539,7 +539,7 @@ fn offer_works() {
 		// ALICE cannot offer on own NFT
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT,
@@ -550,7 +550,7 @@ fn offer_works() {
 		// BOB cannot offer below the MinimumOfferAmount threshold
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(BOB),
+				RuntimeOrigin::signed(BOB),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT - 1,
@@ -560,7 +560,7 @@ fn offer_works() {
 		);
 		// BOB successfully places offer
 		assert_ok!(RmrkMarket::make_offer(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			MIN_OFFER_ON_NFT,
@@ -576,7 +576,7 @@ fn offer_works() {
 		// BOB cannot offer again on a NFT with an active offer
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(BOB),
+				RuntimeOrigin::signed(BOB),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT + 50,
@@ -597,7 +597,7 @@ fn offer_withdrawn_works() {
 		// ALICE cannot offer on a non-existing NFT
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT,
@@ -612,7 +612,7 @@ fn offer_withdrawn_works() {
 		// ALICE cannot offer on own NFT
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT,
@@ -623,7 +623,7 @@ fn offer_withdrawn_works() {
 		// BOB cannot offer below the MinimumOfferAmount threshold
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(BOB),
+				RuntimeOrigin::signed(BOB),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT - 1,
@@ -633,12 +633,12 @@ fn offer_withdrawn_works() {
 		);
 		// BOB cannot withdraw an offer that hasn't been made
 		assert_noop!(
-			RmrkMarket::withdraw_offer(Origin::signed(BOB), COLLECTION_ID_0, NFT_ID_0,),
+			RmrkMarket::withdraw_offer(RuntimeOrigin::signed(BOB), COLLECTION_ID_0, NFT_ID_0,),
 			Error::<Test>::UnknownOffer
 		);
 		// BOB successfully places offer
 		assert_ok!(RmrkMarket::make_offer(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			MIN_OFFER_ON_NFT,
@@ -653,11 +653,11 @@ fn offer_withdrawn_works() {
 		}));
 		// ALICE cannot withdraw offer on own NFT
 		assert_noop!(
-			RmrkMarket::withdraw_offer(Origin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0,),
+			RmrkMarket::withdraw_offer(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0,),
 			Error::<Test>::UnknownOffer
 		);
 		// BOB successfully places withdraws offer
-		assert_ok!(RmrkMarket::withdraw_offer(Origin::signed(BOB), COLLECTION_ID_0, NFT_ID_0,));
+		assert_ok!(RmrkMarket::withdraw_offer(RuntimeOrigin::signed(BOB), COLLECTION_ID_0, NFT_ID_0,));
 		// Offer from BOB on ALICE's NFT should trigger OfferPlaced event
 		System::assert_last_event(MockEvent::RmrkMarket(crate::Event::OfferWithdrawn {
 			sender: BOB,
@@ -666,7 +666,7 @@ fn offer_withdrawn_works() {
 		}));
 		// ALICE cannot accept offer anymore
 		assert_noop!(
-			RmrkMarket::accept_offer(Origin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, BOB,),
+			RmrkMarket::accept_offer(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, BOB,),
 			Error::<Test>::UnknownOffer
 		);
 	});
@@ -682,7 +682,7 @@ fn accept_offer_works() {
 		// ALICE cannot offer on a non-existing NFT
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT,
@@ -697,7 +697,7 @@ fn accept_offer_works() {
 		// ALICE cannot offer on own NFT
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT,
@@ -708,7 +708,7 @@ fn accept_offer_works() {
 		// BOB cannot offer below the MinimumOfferAmount threshold
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(BOB),
+				RuntimeOrigin::signed(BOB),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT - 1,
@@ -718,7 +718,7 @@ fn accept_offer_works() {
 		);
 		// BOB successfully places offer
 		assert_ok!(RmrkMarket::make_offer(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			MIN_OFFER_ON_NFT,
@@ -733,7 +733,7 @@ fn accept_offer_works() {
 		}));
 		// ALICE accepts BOB's offer
 		assert_ok!(
-			RmrkMarket::accept_offer(Origin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, BOB,)
+			RmrkMarket::accept_offer(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, BOB,)
 		);
 		// Offer from BOB on ALICE's NFT should trigger OfferPlaced event
 		System::assert_last_event(MockEvent::RmrkMarket(crate::Event::OfferAccepted {
@@ -755,7 +755,7 @@ fn accept_expired_offer_wont_works() {
 		// ALICE cannot offer on a non-existing NFT
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT,
@@ -770,7 +770,7 @@ fn accept_expired_offer_wont_works() {
 		// ALICE cannot offer on own NFT
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT,
@@ -781,7 +781,7 @@ fn accept_expired_offer_wont_works() {
 		// BOB cannot offer below the MinimumOfferAmount threshold
 		assert_noop!(
 			RmrkMarket::make_offer(
-				Origin::signed(BOB),
+				RuntimeOrigin::signed(BOB),
 				COLLECTION_ID_0,
 				NFT_ID_0,
 				MIN_OFFER_ON_NFT - 1,
@@ -791,7 +791,7 @@ fn accept_expired_offer_wont_works() {
 		);
 		// BOB successfully places offer
 		assert_ok!(RmrkMarket::make_offer(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			COLLECTION_ID_0,
 			NFT_ID_0,
 			MIN_OFFER_ON_NFT,
@@ -806,14 +806,14 @@ fn accept_expired_offer_wont_works() {
 		}));
 		// CHARLIE cannot accepts BOB's offer
 		assert_noop!(
-			RmrkMarket::accept_offer(Origin::signed(CHARLIE), COLLECTION_ID_0, NFT_ID_0, BOB,),
+			RmrkMarket::accept_offer(RuntimeOrigin::signed(CHARLIE), COLLECTION_ID_0, NFT_ID_0, BOB,),
 			Error::<Test>::NoPermission
 		);
 		// Set block number to expired block
 		System::set_block_number(2);
 		// ALICE accepts BOB's offer
 		assert_noop!(
-			RmrkMarket::accept_offer(Origin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, BOB,),
+			RmrkMarket::accept_offer(RuntimeOrigin::signed(ALICE), COLLECTION_ID_0, NFT_ID_0, BOB,),
 			Error::<Test>::OfferHasExpired
 		);
 	});

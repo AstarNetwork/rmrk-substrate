@@ -7,7 +7,7 @@ use super::*;
 use rmrk_traits::{ComposableResource, FixedPart, SlotPart, SlotResource, ThemeProperty};
 
 use frame_support::{assert_noop, assert_ok};
-use mock::{Event as MockEvent, *};
+use mock::{RuntimeEvent as MockEvent, *};
 use sp_runtime::Permill;
 use sp_std::convert::TryInto;
 type RMRKEquip = Pallet<Test>;
@@ -62,7 +62,7 @@ fn create_base_works() {
 		};
 
 		assert_ok!(RmrkEquip::create_base(
-			Origin::signed(ALICE), // origin
+			RuntimeOrigin::signed(ALICE), // origin
 			bvec![0u8; 20],        // base_type
 			bvec![0u8; 20],        // symbol
 			bvec![PartType::FixedPart(fixed_part), PartType::SlotPart(slot_part),],
@@ -76,7 +76,7 @@ fn change_base_issuer_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		// Create a base
 		assert_ok!(RmrkEquip::create_base(
-			Origin::signed(ALICE), // origin
+			RuntimeOrigin::signed(ALICE), // origin
 			bvec![0u8; 20],        // base_type
 			bvec![0u8; 20],        // symbol
 			bvec![],               // parts
@@ -85,11 +85,11 @@ fn change_base_issuer_works() {
 		assert_eq!(RmrkEquip::bases(0).unwrap().issuer, ALICE);
 		// Bob can't change issuer (no permission)
 		assert_noop!(
-			RmrkEquip::change_base_issuer(Origin::signed(BOB), 0, BOB),
+			RmrkEquip::change_base_issuer(RuntimeOrigin::signed(BOB), 0, BOB),
 			Error::<Test>::PermissionError
 		);
 		// Changing Base Issuer should be Alice
-		assert_ok!(RmrkEquip::change_base_issuer(Origin::signed(ALICE), 0, BOB));
+		assert_ok!(RmrkEquip::change_base_issuer(RuntimeOrigin::signed(ALICE), 0, BOB));
 		// Issuer should be Bob
 		assert_eq!(RmrkEquip::bases(0).unwrap().issuer, BOB);
 		// Last event should be BaseIssuerChanged
@@ -144,7 +144,7 @@ fn equip_works() {
 		};
 		// Let's create a base with these 4 parts
 		assert_ok!(RmrkEquip::create_base(
-			Origin::signed(ALICE), // origin
+			RuntimeOrigin::signed(ALICE), // origin
 			stb("svg"),            // base_type
 			stb("KANPEOPLE"),      // symbol
 			bvec![
@@ -157,7 +157,7 @@ fn equip_works() {
 
 		// Create collection 0
 		assert_ok!(RmrkCore::create_collection(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_0,
 			stb("ipfs://col0-metadata"), // metadata
 			Some(5),                     // max
@@ -166,7 +166,7 @@ fn equip_works() {
 
 		// Create collection 1
 		assert_ok!(RmrkCore::create_collection(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_1,
 			stb("ipfs://col1-metadata"), // metadata
 			Some(5),                     // max
@@ -175,7 +175,7 @@ fn equip_works() {
 
 		// Mint NFT 0 from collection 0 (character-0)
 		assert_ok!(RmrkCore::mint_nft(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			Some(ALICE),                        // owner
 			0,                                  // nft id
 			0,                                  // collection ID
@@ -188,7 +188,7 @@ fn equip_works() {
 
 		// Mint NFT 1 from collection 0 (character-1)
 		assert_ok!(RmrkCore::mint_nft(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			Some(ALICE),                        // owner
 			1,                                  // nft id
 			0,                                  // collection ID
@@ -201,7 +201,7 @@ fn equip_works() {
 
 		// Mint NFT 0 from collection 1 (sword)
 		assert_ok!(RmrkCore::mint_nft(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			Some(ALICE),                      // owner
 			0,                                // nft id
 			1,                                // collection ID
@@ -214,7 +214,7 @@ fn equip_works() {
 
 		// Mint NFT 1 from collection 1 (flashlight)
 		assert_ok!(RmrkCore::mint_nft(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			Some(ALICE),                       // owner
 			1,                                 // nft id
 			1,                                 // collection ID
@@ -228,7 +228,7 @@ fn equip_works() {
 		// Attempt to equip sword should fail as character-0 doesn't own sword
 		assert_noop!(
 			RmrkEquip::equip(
-				Origin::signed(ALICE), // Signer
+				RuntimeOrigin::signed(ALICE), // Signer
 				(1, 0),                // item
 				(0, 0),                // equipper
 				0,                     // ResourceId (doesn't exist)
@@ -240,7 +240,7 @@ fn equip_works() {
 
 		// Sends NFT (0, 1) [sword] to NFT (0, 0) [character-0]
 		assert_ok!(RmrkCore::send(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1,                                                          // Collection ID
 			0,                                                          // NFT ID
 			AccountIdOrCollectionNftTuple::CollectionAndNftTuple(0, 0), // Recipient
@@ -248,7 +248,7 @@ fn equip_works() {
 
 		// Sends NFT (0, 2) [flashlight] to NFT (0, 0) [character-0]
 		assert_ok!(RmrkCore::send(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1,                                                          // Collection ID
 			0,                                                          // NFT ID
 			AccountIdOrCollectionNftTuple::CollectionAndNftTuple(0, 0), // Recipient
@@ -258,7 +258,7 @@ fn equip_works() {
 		// associated with this base
 		assert_noop!(
 			RmrkEquip::equip(
-				Origin::signed(ALICE), // Signer
+				RuntimeOrigin::signed(ALICE), // Signer
 				(1, 0),                // item
 				(0, 0),                // equipper
 				0,                     // ResourceId
@@ -278,7 +278,7 @@ fn equip_works() {
 
 		// Add a Base 0 resource (body-1 and left-hand slot) to our character-0 nft
 		assert_ok!(RmrkCore::add_composable_resource(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			0, // collection_id
 			0, // nft id
 			composable_resource,
@@ -289,7 +289,7 @@ fn equip_works() {
 		// equippable into that slot
 		assert_noop!(
 			RmrkEquip::equip(
-				Origin::signed(ALICE), // Signer
+				RuntimeOrigin::signed(ALICE), // Signer
 				(1, 0),                // item
 				(0, 0),                // equipper
 				0,                     // ResourceId
@@ -307,7 +307,7 @@ fn equip_works() {
 
 		// Add our sword left-hand resource to our sword NFT
 		assert_ok!(RmrkCore::add_slot_resource(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1, // collection id
 			0, // nft id
 			sword_slot_resource_left,
@@ -322,7 +322,7 @@ fn equip_works() {
 
 		// Add our flashlight left-hand resource to our flashlight NFT
 		assert_ok!(RmrkCore::add_slot_resource(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1, // collection id
 			1, // nft id
 			flashlight_slot_resource_left,
@@ -331,7 +331,7 @@ fn equip_works() {
 
 		// Equipping sword should now work
 		assert_ok!(RmrkEquip::equip(
-			Origin::signed(ALICE), // Signer
+			RuntimeOrigin::signed(ALICE), // Signer
 			(1, 0),                // item
 			(0, 0),                // equipper
 			0,                     // ResourceId,
@@ -349,7 +349,7 @@ fn equip_works() {
 		// Equipping flashlight to left-hand should fail (SlotAlreadyEquipped)
 		assert_noop!(
 			RmrkEquip::equip(
-				Origin::signed(ALICE), // Signer
+				RuntimeOrigin::signed(ALICE), // Signer
 				(1, 1),                // item
 				(0, 0),                // equipper
 				0,                     // ResourceId,
@@ -375,7 +375,7 @@ fn equip_works() {
 
 		// Add our sword right-hand resource to our sword NFT
 		assert_ok!(RmrkCore::add_slot_resource(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1, // collection id
 			0, // nft id
 			sword_slot_resource_right,
@@ -385,7 +385,7 @@ fn equip_works() {
 		// Equipping to right-hand should fail (already equipped in left hand)
 		assert_noop!(
 			RmrkEquip::equip(
-				Origin::signed(ALICE), // Signer
+				RuntimeOrigin::signed(ALICE), // Signer
 				(1, 0),                // item
 				(0, 0),                // equipper
 				0,                     // ResourceId
@@ -398,7 +398,7 @@ fn equip_works() {
 		// Equipping to left-hand should fail (ItemAlreadyEquipped)
 		assert_noop!(
 			RmrkEquip::equip(
-				Origin::signed(ALICE), // Signer
+				RuntimeOrigin::signed(ALICE), // Signer
 				(1, 0),                // item
 				(0, 0),                // equipper
 				0,                     // ResourceId
@@ -409,7 +409,7 @@ fn equip_works() {
 		);
 
 		assert_ok!(RmrkEquip::unequip(
-			Origin::signed(ALICE), // Signer
+			RuntimeOrigin::signed(ALICE), // Signer
 			(1, 0),                // item
 			(0, 0),                // equipper
 			0,                     // BaseId
@@ -425,7 +425,7 @@ fn equip_works() {
 
 		// Re-equipping to left-hand should work
 		assert_ok!(RmrkEquip::equip(
-			Origin::signed(ALICE), // Signer
+			RuntimeOrigin::signed(ALICE), // Signer
 			(1, 0),                // item
 			(0, 0),                // equipper
 			0,                     // ResourceId
@@ -436,7 +436,7 @@ fn equip_works() {
 		// CHARLIE can't unequip ALICE's item
 		assert_noop!(
 			RmrkEquip::unequip(
-				Origin::signed(CHARLIE), // Signer
+				RuntimeOrigin::signed(CHARLIE), // Signer
 				(1, 0),                  // item
 				(0, 0),                  // unequipper
 				0,                       // BaseId
@@ -447,7 +447,7 @@ fn equip_works() {
 
 		// Unequipping from left-hand should work
 		assert_ok!(RmrkEquip::unequip(
-			Origin::signed(ALICE), // Signer
+			RuntimeOrigin::signed(ALICE), // Signer
 			(1, 0),                // item
 			(0, 0),                // equipper
 			0,                     // BaseId
@@ -457,7 +457,7 @@ fn equip_works() {
 		// Unequipping again should fail since it is no longer equipped
 		assert_noop!(
 			RmrkEquip::unequip(
-				Origin::signed(ALICE), // Signer
+				RuntimeOrigin::signed(ALICE), // Signer
 				(1, 0),                // item
 				(0, 0),                // equipper
 				0,                     // BaseId
@@ -468,7 +468,7 @@ fn equip_works() {
 
 		// Equipping to right-hand should work
 		assert_ok!(RmrkEquip::equip(
-			Origin::signed(ALICE), // Signer
+			RuntimeOrigin::signed(ALICE), // Signer
 			(1, 0),                // item
 			(0, 0),                // equipper
 			1,                     // ResourceId
@@ -479,7 +479,7 @@ fn equip_works() {
 		// Sending equipped item should fail
 		assert_noop!(
 			RmrkCore::send(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				1,
 				0,
 				AccountIdOrCollectionNftTuple::AccountId(BOB)
@@ -514,7 +514,7 @@ fn nested_equip_works() {
 
 		// Create PERSON base
 		assert_ok!(RmrkEquip::create_base(
-			Origin::signed(ALICE), // origin
+			RuntimeOrigin::signed(ALICE), // origin
 			stb("svg"),            // base_type
 			stb("KANPEOPLE"),      // symbol
 			bvec![PartType::FixedPart(body_fixed_part), PartType::SlotPart(headware_slot_part),],
@@ -536,7 +536,7 @@ fn nested_equip_works() {
 
 		// Create HEADWARE base
 		assert_ok!(RmrkEquip::create_base(
-			Origin::signed(ALICE), // origin
+			RuntimeOrigin::signed(ALICE), // origin
 			stb("svg"),            // base_type
 			stb("HEADWARE"),       // symbol
 			bvec![PartType::FixedPart(hat_fixed_part), PartType::SlotPart(gem_slot_part),],
@@ -544,7 +544,7 @@ fn nested_equip_works() {
 
 		// Create PERSON collection (0)
 		assert_ok!(RmrkCore::create_collection(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_0,
 			stb("person-collection"), // metadata
 			Some(5),                  // max
@@ -553,7 +553,7 @@ fn nested_equip_works() {
 
 		// Create HEADWARE collection (1)
 		assert_ok!(RmrkCore::create_collection(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_1,
 			stb("headware-collection"), // metadata
 			Some(5),                    // max
@@ -562,7 +562,7 @@ fn nested_equip_works() {
 
 		// Create GEM collection (2)
 		assert_ok!(RmrkCore::create_collection(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			COLLECTION_ID_2,
 			stb("gem-collection"), // metadata
 			Some(5),               // max
@@ -571,7 +571,7 @@ fn nested_equip_works() {
 
 		// Mint PERSON 0
 		assert_ok!(RmrkCore::mint_nft(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			None,                             // owner
 			0,                                // nft id
 			0,                                // collection ID
@@ -584,7 +584,7 @@ fn nested_equip_works() {
 
 		// Mint HAT 0
 		assert_ok!(RmrkCore::mint_nft(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			None,                             // owner
 			0,                                // nft id
 			1,                                // collection ID
@@ -597,7 +597,7 @@ fn nested_equip_works() {
 
 		// Mint GEM 0
 		assert_ok!(RmrkCore::mint_nft(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			None,                             // owner
 			0,                                // nft id
 			2,                                // collection ID
@@ -610,7 +610,7 @@ fn nested_equip_works() {
 
 		// Sends hat-0 to person-0
 		assert_ok!(RmrkCore::send(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1,                                                          // Collection ID
 			0,                                                          // NFT ID
 			AccountIdOrCollectionNftTuple::CollectionAndNftTuple(0, 0), // Recipient
@@ -618,7 +618,7 @@ fn nested_equip_works() {
 
 		// Sends gem-0 to hat-0
 		assert_ok!(RmrkCore::send(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			2,                                                          // Collection ID
 			0,                                                          // NFT ID
 			AccountIdOrCollectionNftTuple::CollectionAndNftTuple(1, 0), // Recipient
@@ -637,7 +637,7 @@ fn nested_equip_works() {
 
 		// Add this composable resource to person-0
 		assert_ok!(RmrkCore::add_composable_resource(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			0, // collection_id
 			0, // nft id
 			composable_resource_for_person_zero,
@@ -657,7 +657,7 @@ fn nested_equip_works() {
 
 		// Add this composable resource to hat-0
 		assert_ok!(RmrkCore::add_composable_resource(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1, // collection_id
 			0, // nft id
 			composable_resource_for_hat_zero,
@@ -674,7 +674,7 @@ fn nested_equip_works() {
 
 		// Add this Slot resource to gem-0
 		assert_ok!(RmrkCore::add_slot_resource(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			2, // collection id
 			0, // nft id
 			gem_slot_resource,
@@ -687,7 +687,7 @@ fn nested_equip_works() {
 
 		// Equip hat-0 to body-0 should work
 		assert_ok!(RmrkEquip::equip(
-			Origin::signed(ALICE), // Signer
+			RuntimeOrigin::signed(ALICE), // Signer
 			(1, 0),                // item
 			(0, 0),                // equipper
 			0,                     // ResourceId,
@@ -697,7 +697,7 @@ fn nested_equip_works() {
 
 		// Equip gem-0 to hat-0 should work
 		assert_ok!(RmrkEquip::equip(
-			Origin::signed(ALICE), // Signer
+			RuntimeOrigin::signed(ALICE), // Signer
 			(2, 0),                // item
 			(1, 0),                // equipper
 			0,                     // ResourceId,
@@ -749,7 +749,7 @@ fn equippable_works() {
 		};
 		// Let's create a base with these 4 parts
 		assert_ok!(RmrkEquip::create_base(
-			Origin::signed(ALICE), // origin
+			RuntimeOrigin::signed(ALICE), // origin
 			stb("svg"),            // base_type
 			stb("KANPEOPLE"),      // symbol
 			bvec![
@@ -762,7 +762,7 @@ fn equippable_works() {
 
 		// equippable extrinsic should work
 		assert_ok!(RmrkEquip::equippable(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			0,                                      // base ID
 			202,                                    // slot ID
 			EquippableList::Custom(bvec![5, 6, 7]), // equippable collections
@@ -786,7 +786,7 @@ fn equippable_works() {
 		// Should not be able to change equippable on non-existent base
 		assert_noop!(
 			RmrkEquip::equippable(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				666,                                    // base ID
 				202,                                    // slot ID
 				EquippableList::Custom(bvec![5, 6, 7]), // equippable collections
@@ -797,7 +797,7 @@ fn equippable_works() {
 		// Should not be able to change equippable on non-existent part
 		assert_noop!(
 			RmrkEquip::equippable(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				0,                                      // base ID
 				200,                                    // slot ID
 				EquippableList::Custom(bvec![5, 6, 7]), // equippable collections
@@ -808,7 +808,7 @@ fn equippable_works() {
 		// Should not be able to change equippable on FixedPart part
 		assert_noop!(
 			RmrkEquip::equippable(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				0,                                            // base ID
 				101,                                          // slot ID
 				EquippableList::Custom(bvec![5, 6, 7, 8, 9]), // equippable collections
@@ -819,7 +819,7 @@ fn equippable_works() {
 		// Should not be able to change equippable on non-issued base
 		assert_noop!(
 			RmrkEquip::equippable(
-				Origin::signed(BOB),
+				RuntimeOrigin::signed(BOB),
 				0,                                      // base ID
 				201,                                    // slot ID
 				EquippableList::Custom(bvec![3, 4, 5]), // equippable collections
@@ -829,7 +829,7 @@ fn equippable_works() {
 
 		// Blanking out equippable (setting to []) works
 		assert_ok!(RmrkEquip::equippable(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			0,                     // base ID
 			202,                   // slot ID
 			EquippableList::Empty, // equippable collections
@@ -839,7 +839,7 @@ fn equippable_works() {
 
 		// Setting equippable to * works
 		assert_ok!(RmrkEquip::equippable(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			0,                   // base ID
 			202,                 // slot ID
 			EquippableList::All, // equippable collections
@@ -879,7 +879,7 @@ fn equippable_add_works() {
 		};
 		// Let's create a base with these 4 parts
 		assert_ok!(RmrkEquip::create_base(
-			Origin::signed(ALICE), // origin
+			RuntimeOrigin::signed(ALICE), // origin
 			stb("svg"),            // base_type
 			stb("KANPEOPLE"),      // symbol
 			bvec![
@@ -892,7 +892,7 @@ fn equippable_add_works() {
 
 		// add_equippable extrinsic should work
 		assert_ok!(RmrkEquip::equippable_add(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			0,   // base ID
 			202, // slot ID
 			5,   // equippable collection
@@ -916,7 +916,7 @@ fn equippable_add_works() {
 		// equippable limit is 10.
 		for _i in 2..9 {
 			assert_ok!(RmrkEquip::equippable_add(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				0,   // base ID
 				202, // slot ID
 				5,   // equippable collection
@@ -926,7 +926,7 @@ fn equippable_add_works() {
 		// This should fail since the limit is reached.
 		assert_noop!(
 			RmrkEquip::equippable_add(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				0,   // base ID
 				202, // slot ID
 				5,   // equippable collection
@@ -937,7 +937,7 @@ fn equippable_add_works() {
 		// Should not be able to change equippable on non-existent base
 		assert_noop!(
 			RmrkEquip::equippable_add(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				666, // base ID
 				202, // slot ID
 				5,   // equippable collection
@@ -948,7 +948,7 @@ fn equippable_add_works() {
 		// Should not be able to change equippable on non-existent part
 		assert_noop!(
 			RmrkEquip::equippable_add(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				0,   // base ID
 				200, // slot ID
 				5,   // equippable collection
@@ -959,7 +959,7 @@ fn equippable_add_works() {
 		// Should not be able to change equippable on FixedPart part
 		assert_noop!(
 			RmrkEquip::equippable_add(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				0,   // base ID
 				101, // slot ID
 				5,   // equippable collection
@@ -970,7 +970,7 @@ fn equippable_add_works() {
 		// Should not be able to change equippable on non-issued base
 		assert_noop!(
 			RmrkEquip::equippable_add(
-				Origin::signed(BOB),
+				RuntimeOrigin::signed(BOB),
 				0,   // base ID
 				201, // slot ID
 				3,   // equippable collection
@@ -1010,7 +1010,7 @@ fn equippable_remove_works() {
 		};
 		// Let's create a base with these 4 parts
 		assert_ok!(RmrkEquip::create_base(
-			Origin::signed(ALICE), // origin
+			RuntimeOrigin::signed(ALICE), // origin
 			stb("svg"),            // base_type
 			stb("KANPEOPLE"),      // symbol
 			bvec![
@@ -1023,7 +1023,7 @@ fn equippable_remove_works() {
 
 		// add_equippable extrinsic should work
 		assert_ok!(RmrkEquip::equippable_remove(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			0,   // base ID
 			202, // slot ID
 			3,   // equippable collection
@@ -1047,7 +1047,7 @@ fn equippable_remove_works() {
 		// Should not be able to change equippable on non-existent base
 		assert_noop!(
 			RmrkEquip::equippable_remove(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				666, // base ID
 				202, // slot ID
 				2,   // equippable collection
@@ -1058,7 +1058,7 @@ fn equippable_remove_works() {
 		// Should not be able to change equippable on non-existent part
 		assert_noop!(
 			RmrkEquip::equippable_remove(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				0,   // base ID
 				200, // slot ID
 				2,   // equippable collection
@@ -1069,7 +1069,7 @@ fn equippable_remove_works() {
 		// Should not be able to change equippable on FixedPart part
 		assert_noop!(
 			RmrkEquip::equippable_remove(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				0,   // base ID
 				101, // slot ID
 				2,   // equippable collection
@@ -1080,7 +1080,7 @@ fn equippable_remove_works() {
 		// Should not be able to change equippable on non-issued base
 		assert_noop!(
 			RmrkEquip::equippable_remove(
-				Origin::signed(BOB),
+				RuntimeOrigin::signed(BOB),
 				0,   // base ID
 				201, // slot ID
 				2,   // equippable collection
@@ -1107,7 +1107,7 @@ fn theme_add_works() {
 		// Attempt to add theme (should fail: Base must exist)
 		assert_noop!(
 			RmrkEquip::theme_add(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				0, // BaseID
 				non_default_theme.clone()
 			),
@@ -1116,7 +1116,7 @@ fn theme_add_works() {
 
 		// Build a base
 		assert_ok!(RmrkEquip::create_base(
-			Origin::signed(ALICE), // origin
+			RuntimeOrigin::signed(ALICE), // origin
 			bvec![0u8; 20],        // base_type
 			bvec![0u8; 20],        // symbol
 			bvec![],
@@ -1125,7 +1125,7 @@ fn theme_add_works() {
 		// Add non-default theme to base (should fail w/o default)
 		assert_noop!(
 			RmrkEquip::theme_add(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				0, // BaseID
 				non_default_theme.clone()
 			),
@@ -1145,7 +1145,7 @@ fn theme_add_works() {
 		// Attempt to add default theme (should fail: Signer must be issuer of base)
 		assert_noop!(
 			RmrkEquip::theme_add(
-				Origin::signed(BOB),
+				RuntimeOrigin::signed(BOB),
 				0, // BaseID
 				default_theme.clone()
 			),
@@ -1154,14 +1154,14 @@ fn theme_add_works() {
 
 		// Add default theme to base
 		assert_ok!(RmrkEquip::theme_add(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			0, // BaseID
 			default_theme
 		));
 
 		// Add non-default theme to base (should succeed)
 		assert_ok!(RmrkEquip::theme_add(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			0, // BaseID
 			non_default_theme
 		));
@@ -1195,7 +1195,7 @@ fn theme_add_too_many_properties_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		// Build a base
 		assert_ok!(RmrkEquip::create_base(
-			Origin::signed(ALICE), // origin
+			RuntimeOrigin::signed(ALICE), // origin
 			bvec![0u8; 20],        // base_type
 			bvec![0u8; 20],        // symbol
 			bvec![],
@@ -1223,7 +1223,7 @@ fn theme_add_too_many_properties_fails() {
 		// We only run this to avoid having to define default_theme's type above
 		// Otherwise it will fail to compile
 		let _add_theme_result = RmrkEquip::theme_add(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			0, // BaseID
 			default_theme,
 		);
